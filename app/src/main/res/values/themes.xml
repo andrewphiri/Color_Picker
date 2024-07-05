@@ -2,4 +2,14 @@
 <resources>
 
     <style name="Theme.ColorPicker" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <style name="Theme.ColorPicker.SplashScreen" parent="Theme.AppCompat.NoActionBar">
+        <!-- Set the splash screen background, animated icon, and animation
+        duration. -->
+        <item name="android:windowBackground">@drawable/sharp_colorize_24</item>
+        <item name="android:statusBarColor">@color/black</item>
+        <item name="postSplashScreenTheme">@style/Theme.ColorPicker</item>
+        <item name="windowSplashScreenBackground">@color/black</item>
+        <item name="windowSplashScreenAnimationDuration">200</item>
+    </style>
 </resources>

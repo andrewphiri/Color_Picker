@@ -81,4 +81,5 @@ dependencies {
 
     // ML Kit Vision dependencies (if needed for image analysis)
     implementation (libs.vision.common)
+    implementation(libs.androidx.core.splashscreen)
 }

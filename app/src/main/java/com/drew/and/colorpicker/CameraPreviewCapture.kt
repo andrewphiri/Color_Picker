@@ -8,13 +8,18 @@ import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
@@ -125,6 +130,41 @@ fun CameraPreviewWithCapture(modifier: Modifier, onImageCaptured: (Bitmap) -> Un
             Text("Capture Color")
         }
     }
+
+
+
+    // Spacer(modifier = Modifier.height(16.dp))
+//    Box(
+//        modifier = Modifier
+//            .align(Alignment.Start)
+//            .height(10.dp)
+//            .width(50.dp)
+//            .background(color = selectedColor, shape = RectangleShape)
+//    )
+//
+//    Text(
+//        modifier = Modifier
+//            .align(Alignment.CenterHorizontally),
+//        text = selectedColor.toHex(),
+//        style = MaterialTheme.typography.bodySmall,
+//    )
+//
+//    Text(
+//        modifier = Modifier
+//            .align(Alignment.CenterHorizontally),
+//        text = selectedColor.toRgb(),
+//        style = MaterialTheme.typography.bodySmall,
+//    )
+//
+//    // Reset button
+//    Button(
+//        onClick = {
+//            capturedImage = null
+//            selectedColor = Color.Transparent
+//            pickerPosition = Offset.Zero
+//        }) {
+//        Text("Back")
+//    }
 }
 
 private fun createTempFile(context: android.content.Context): java.io.File {
