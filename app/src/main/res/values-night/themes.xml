@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.NkhukuManagement" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="android:statusBarColor">@color/statusBarForNight</item>
+    </style>
+
+    <style name="Theme.ColorPicker.SplashScreen" parent="Theme.SplashScreen">
+        <!-- Set the splash screen background, animated icon, and animation
+        duration. -->
+        <item name="windowSplashScreenBackground">@color/black</item>
+
+        <!-- Use windowSplashScreenAnimatedIcon to add a drawable or an animated
+             drawable. One of these is required. -->
+        <item name="windowSplashScreenAnimatedIcon">@drawable/logo_night</item>
+        <!-- Required for animated icons. -->
+        <item name="windowSplashScreenAnimationDuration">200</item>
+
+        <!-- Set the theme of the Activity that directly follows your splash
+        screen. This is required. -->
+        <item name="postSplashScreenTheme">@style/Theme.ColorPicker</item>
+    </style>
+    <style name="AppTextAppearance.Body1" parent="TextAppearance.AppCompat.Body1">
+        <!-- Customize text appearance for dark mode -->
+        <item name="android:textSize">18sp</item>
+        <!-- Add any other attributes you want to customize for dark mode -->
+        <item name="android:lineSpacingExtra">8sp</item>
+    </style>
+</resources>

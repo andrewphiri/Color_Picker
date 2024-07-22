@@ -8,6 +8,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import android.Manifest
 import android.content.pm.PackageManager
+import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -30,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.drew.and.colorpicker.ui.theme.ColorPickerTheme
+import org.opencv.android.OpenCVLoader
 import androidx.activity.compose.rememberLauncherForActivityResult as rememberLauncherForActivityResult1
 
 class MainActivity : ComponentActivity() {

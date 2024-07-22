@@ -6,10 +6,10 @@
     <style name="Theme.ColorPicker.SplashScreen" parent="Theme.AppCompat.NoActionBar">
         <!-- Set the splash screen background, animated icon, and animation
         duration. -->
-        <item name="android:windowBackground">@drawable/sharp_colorize_24</item>
-        <item name="android:statusBarColor">@color/black</item>
+        <item name="android:windowBackground">@drawable/logo</item>
+        <item name="android:statusBarColor">@color/white</item>
         <item name="postSplashScreenTheme">@style/Theme.ColorPicker</item>
-        <item name="windowSplashScreenBackground">@color/black</item>
-        <item name="windowSplashScreenAnimationDuration">200</item>
+        <item name="windowSplashScreenBackground">@color/white</item>
+        <item name="windowSplashScreenAnimationDuration">2000</item>
     </style>
 </resources>

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:drawable="@color/black"/>
-    <item android:drawable="@drawable/sharp_colorize_24"/>
+    <item android:drawable="@color/white"/>
+    <item android:drawable="@drawable/color_picker_logo"
+        android:gravity="center"/>
 </layer-list>

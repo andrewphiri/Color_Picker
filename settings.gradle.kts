@@ -21,4 +21,3 @@ dependencyResolutionManagement {
 
 rootProject.name = "Color Picker"
 include(":app")
- 

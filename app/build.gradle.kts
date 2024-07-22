@@ -36,11 +36,12 @@ android {
     kotlinOptions {
         jvmTarget = "1.8"
     }
+
     buildFeatures {
         compose = true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.1"
+        kotlinCompilerExtensionVersion = "1.5.10"
     }
     packaging {
         resources {
@@ -82,4 +83,6 @@ dependencies {
     // ML Kit Vision dependencies (if needed for image analysis)
     implementation (libs.vision.common)
     implementation(libs.androidx.core.splashscreen)
+    implementation(libs.tensorflow.lite)
+
 }

@@ -1,5 +1,7 @@
 import android.graphics.Bitmap
 import androidx.activity.compose.BackHandler
+import androidx.camera.core.ImageProxy
+import androidx.camera.view.PreviewView
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -21,6 +23,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
@@ -49,7 +52,10 @@ fun ColorPickerApp(modifier: Modifier) {
             LaunchedEffect(Unit) {
                 // Update selected color based on picker position
                 selectedColor =
-                    pickColorFromBitmap(capturedImage!!, pickerPosition, IntSize(width = width, height = height))
+                    pickColorFromBitmap(capturedImage!!,   transformCoordinates(pickerPosition,
+                        capturedImage!!,
+                       IntSize(width, height)
+                    ))
 
                 // Initialize picker position when the app starts
                     pickerPosition = Offset(width / 2f, height / 2f) // Initial position anywhere visible
@@ -60,6 +66,10 @@ fun ColorPickerApp(modifier: Modifier) {
                 modifier = Modifier
                     .fillMaxSize()
                     .weight(4f)
+                    .onGloballyPositioned {
+                        width = it.size.width
+                        height = it.size.height
+                    }
                     .pointerInput(Unit) {
                         detectDragGestures { change, dragAmount ->
                             change.consume()
@@ -77,11 +87,10 @@ fun ColorPickerApp(modifier: Modifier) {
                             selectedColor =
                                 pickColorFromBitmap(
                                     capturedImage!!,
-                                    pickerPosition.copy(
-                                        y = pickerPosition.y - 33
-                                    ),
+                                    transformCoordinates(pickerPosition,
+                                        capturedImage!!,
                                     size
-                                )
+                                ))
 
                         }
                     }
@@ -89,7 +98,8 @@ fun ColorPickerApp(modifier: Modifier) {
                 Image(
                     bitmap = capturedImage!!.asImageBitmap(),
                     contentDescription = null,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier
+                        .fillMaxSize()
                 )
                 Canvas(modifier = Modifier
                     .fillMaxSize()) {
@@ -186,7 +196,7 @@ fun ColorPickerApp(modifier: Modifier) {
            // Spacer(modifier = Modifier.height(16.dp))
             Box(
                 modifier = Modifier
-                    .align(Alignment.Start)
+                    .align(Alignment.CenterHorizontally)
                     .height(10.dp)
                     .width(50.dp)
                     .background(color = selectedColor, shape = RectangleShape)
@@ -220,12 +230,19 @@ fun ColorPickerApp(modifier: Modifier) {
 }
 
 // Function to pick a color from the bitmap at the given position
-private fun pickColorFromBitmap(bitmap: Bitmap, position: Offset, size: IntSize): Color {
-    val x = (position.x / size.width * bitmap.width).toInt().coerceIn(0, bitmap.width - 1)
-    val y = (position.y / size.height * bitmap.height).toInt().coerceIn(0, bitmap.height - 1)
+private fun pickColorFromBitmap(bitmap: Bitmap, position: Offset): Color {
+    val x = position.x.toInt().coerceIn(0, bitmap.width - 1)
+    val y = position.y.toInt().coerceIn(0, bitmap.height - 1)
     val pixel = bitmap.getPixel(x, y)
     return Color(pixel)
 }
+
+//private fun pickColorFromBitmap(bitmap: Bitmap, position: Offset, size: IntSize): Color {
+//    val x = (position.x / size.width * bitmap.width).toInt().coerceIn(0, bitmap.width - 1)
+//    val y = (position.y / size.height * bitmap.height).toInt().coerceIn(0, bitmap.height - 1)
+//    val pixel = bitmap.getPixel(x, y)
+//    return Color(pixel)
+//}
 
 // Extension function to convert Color to HEX string
  fun Color.toHex(): String {
@@ -242,3 +259,33 @@ fun Color.toRgb(): String {
     val blue = (blue * 255).toInt()
     return "RGB($red, $green, $blue)"
 }
+
+private fun transformCoordinates(pickerPosition: Offset, imageBitmap: Bitmap, size: IntSize): Offset {
+    val imageWidth = imageBitmap.width.toFloat()
+    val imageHeight = imageBitmap.height.toFloat()
+
+    // Calculate the aspect ratios
+    val viewAspectRatio = size.width.toFloat() / size.height.toFloat()
+    val imageAspectRatio = imageWidth / imageHeight
+
+    // Determine scaling and offset
+    val scale: Float
+    val offsetX: Float
+    val offsetY: Float
+    if (viewAspectRatio > imageAspectRatio) {
+        scale = size.height.toFloat() / imageHeight
+        offsetX = (size.width.toFloat() - imageWidth * scale) / 2
+        offsetY = 0f
+    } else {
+        scale = size.width.toFloat() / imageWidth
+        offsetX = 0f
+        offsetY = (size.height.toFloat() - imageHeight * scale) / 2
+    }
+
+    // Transform picker position to bitmap coordinates
+    val transformedX = (pickerPosition.x - offsetX) / scale
+    val transformedY = (pickerPosition.y - offsetY) / scale
+
+    return Offset(transformedX, transformedY)
+}
+
