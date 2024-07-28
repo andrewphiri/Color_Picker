@@ -31,7 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.drew.and.colorpicker.ui.theme.ColorPickerTheme
-import org.opencv.android.OpenCVLoader
+
 import androidx.activity.compose.rememberLauncherForActivityResult as rememberLauncherForActivityResult1
 
 class MainActivity : ComponentActivity() {

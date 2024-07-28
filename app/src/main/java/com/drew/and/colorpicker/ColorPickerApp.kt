@@ -65,7 +65,7 @@ fun ColorPickerApp(modifier: Modifier) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .weight(4f)
+                    .weight(4f, true)
                     .onGloballyPositioned {
                         width = it.size.width
                         height = it.size.height
@@ -91,7 +91,6 @@ fun ColorPickerApp(modifier: Modifier) {
                                         capturedImage!!,
                                     size
                                 ))
-
                         }
                     }
             ) {

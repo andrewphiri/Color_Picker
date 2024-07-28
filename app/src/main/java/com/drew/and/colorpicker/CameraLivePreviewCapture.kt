@@ -6,11 +6,8 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.graphics.ColorMatrix
-import android.graphics.ColorMatrixColorFilter
 import android.graphics.ImageFormat
 import android.graphics.Matrix
-import android.graphics.Paint
 import android.graphics.Rect
 import android.graphics.YuvImage
 import android.hardware.camera2.CameraMetadata
@@ -42,7 +39,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -51,11 +47,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
-import androidx.core.graphics.ColorUtils
-import org.opencv.core.CvType
-import org.opencv.core.Mat
-import org.opencv.core.Scalar
-import org.opencv.imgproc.Imgproc
+import kotlinx.coroutines.launch
 import toHex
 import toRgb
 import java.io.ByteArrayOutputStream
@@ -102,7 +94,7 @@ fun CameraLivePreviewWithCapture(modifier: Modifier, onImageCaptured: (Bitmap) -
     height = LocalContext.current.resources.displayMetrics.heightPixels
     var screenSize = IntSize(width = width, height = height)
     val colorQueue = remember { ArrayDeque<Color>() }
-    
+
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == android.app.Activity.RESULT_OK) {
@@ -190,9 +182,14 @@ fun CameraLivePreviewWithCapture(modifier: Modifier, onImageCaptured: (Bitmap) -
                             )
                         )
 
-                        val clr = updateEmaColor(getPixelColorAtOffset(imageProxy, transformedPosition), alpha = 0.03)
+//            val colorArray = getPixelColorAtOffset(imageProxy, transformedPosition)
+//            val clr = Color(colorArray[0], colorArray[1], colorArray[2])
+//            selectedColor = updateEMAColor(imageProxy, transformedPosition, alpha = 0.1f, selectedColor = clr)
 
-                        selectedColor = Color(clr[0], clr[1], clr[2])
+            val colorArray = getPixelColorAtOffset(imageProxy, transformedPosition)
+            val clr = updateEmaColor(colorArray, alpha = 0.1)
+            selectedColor = Color(clr[0], clr[1], clr[2])
+
                     }
                     imageProxy.close()
                 }
@@ -453,6 +450,7 @@ private fun rotateBitmap(bitmap: Bitmap, rotationDegrees: Int): Bitmap {
     return Bitmap.createBitmap(bitmap,0,0,bitmap.width, bitmap.height, matrix, true)
 }
 
+//Function to smooth color detection. The lower the alpha the smoother the detection
 fun updateEmaColor(newColor: IntArray, alpha: Double = 0.2): IntArray {
     val (newRed, newGreen, newBlue) = newColor
 
@@ -736,6 +734,58 @@ private fun yuvToRgb(image: ImageProxy): Bitmap {
     val imageBytes = out.toByteArray()
     return BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
 }
+
+private fun updateEMAColor(imageProxy: ImageProxy, position: Offset, alpha: Float = 0.5f,selectedColor: Color = Color.Transparent) : Color {
+    val yBuffer = imageProxy.planes[0].buffer // Y plane
+    val uBuffer = imageProxy.planes[1].buffer // U plane
+    val vBuffer = imageProxy.planes[2].buffer // V plane
+
+    val width = imageProxy.width
+    val height = imageProxy.height
+
+    val x = position.x.toInt().coerceIn(0, width - 1)
+    val y = position.y.toInt().coerceIn(0, height - 1)
+
+    val yRowStride = imageProxy.planes[0].rowStride
+    val uvRowStride = imageProxy.planes[1].rowStride
+    val uvPixelStride = imageProxy.planes[1].pixelStride
+
+    val yIndex = y * yRowStride + x
+    val uvIndex = (y / 2) * uvRowStride + (x / 2) * uvPixelStride
+
+    val yValue = yBuffer[yIndex].toInt() and 0xFF
+    val uValue = uBuffer[uvIndex].toInt() and 0xFF
+    val vValue = vBuffer[uvIndex].toInt() and 0xFF
+
+    val rgb = yuvToRgb(yValue, uValue, vValue)
+
+    val r = (rgb shr 16) and 0xFF
+    val g = (rgb shr 8) and 0xFF
+    val b = rgb and 0xFF
+
+    val newColor = Color(r, g, b)
+
+    // Apply EMA filter
+     val color = Color(
+        red = alpha * newColor.red + (1 - alpha) * selectedColor.red,
+        green = alpha * newColor.green + (1 - alpha) * selectedColor.green,
+        blue = alpha * newColor.blue + (1 - alpha) * selectedColor.blue
+    )
+    return color
+}
+
+private fun yuvToRgb(y: Int, u: Int, v: Int): Int {
+    val c = y - 16
+    val d = u - 128
+    val e = v - 128
+
+    val r = (298 * c + 409 * e + 128) shr 8
+    val g = (298 * c - 100 * d - 208 * e + 128) shr 8
+    val b = (298 * c + 516 * d + 128) shr 8
+
+    return (0xFF shl 24) or (r.coerceIn(0, 255) shl 16) or (g.coerceIn(0, 255) shl 8) or b.coerceIn(0, 255)
+}
+
 
 
 
