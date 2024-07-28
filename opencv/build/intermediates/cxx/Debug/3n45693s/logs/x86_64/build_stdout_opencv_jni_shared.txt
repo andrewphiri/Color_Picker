@@ -1,2 +1,0 @@
-ninja: Entering directory `C:\Users\andre\Android Studio Projects\ColorPicker\opencv\.cxx\Debug\3n45693s\x86_64'
-ninja: no work to do.
