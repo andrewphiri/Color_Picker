@@ -32,6 +32,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -41,13 +43,15 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.drew.and.colorpicker.ViewModel.ColorViewModel
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 import toHex
 import toRgb
 import java.io.ByteArrayOutputStream
@@ -61,13 +65,20 @@ var emaGreen = Color.Transparent.green.toDouble()
 var emaBlue = Color.Transparent.blue.toDouble()
 var initialized = false
 
+@Serializable
+object CameraLivePreviewCaptureScreenDestination
+
 @SuppressLint("RestrictedApi")
 @OptIn(ExperimentalCamera2Interop::class)
 @Composable
-fun CameraLivePreviewWithCapture(modifier: Modifier, onImageCaptured: (Bitmap) -> Unit) {
+fun CameraLivePreviewWithCapture(
+    modifier: Modifier = Modifier,
+    colorViewModel: ColorViewModel,
+    navigateToCapturedImage: () -> Unit
+) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
-    val lifecycleOwner = LocalLifecycleOwner.current
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     val previewView = remember { PreviewView(context) }
     var imageCapture: ImageCapture? by remember { mutableStateOf(null) }
    //var capturedLiveImage by remember { mutableStateOf<Bitmap?>(null) }
@@ -85,15 +96,16 @@ fun CameraLivePreviewWithCapture(modifier: Modifier, onImageCaptured: (Bitmap) -
     )
 }
 
-    var selectedColor by remember { mutableStateOf(Color.Transparent) }
-    var pickerPosition by remember { mutableStateOf(Offset.Zero) }
-    var pickerSize by remember{ mutableStateOf(25f) }
-    var width by remember { mutableStateOf(0) }
-    var height by remember { mutableStateOf(0) }
+    val selectedColor by colorViewModel.selectedColor.observeAsState(initial = Color.Transparent)
+    val pickerPosition by colorViewModel.pickerPosition.observeAsState(initial = Offset.Zero)
+    val pickerSize by colorViewModel.pickerSize.observeAsState(initial = 25f)
+//    var pickerPosition by remember { mutableStateOf(Offset.Zero) }
+    var adjustablePickerSize by remember{ mutableStateOf(25f) }
+    var width by rememberSaveable { mutableStateOf(0) }
+    var height by rememberSaveable { mutableStateOf(0) }
     width = LocalContext.current.resources.displayMetrics.widthPixels
     height = LocalContext.current.resources.displayMetrics.heightPixels
     var screenSize = IntSize(width = width, height = height)
-    val colorQueue = remember { ArrayDeque<Color>() }
 
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()) { result ->
@@ -101,7 +113,8 @@ fun CameraLivePreviewWithCapture(modifier: Modifier, onImageCaptured: (Bitmap) -
             result.data?.data?.let { uri ->
                 val inputStream = context.contentResolver.openInputStream(uri)
                 val bitmap = BitmapFactory.decodeStream(inputStream)
-                onImageCaptured(bitmap)
+                colorViewModel.setCapturedImage(bitmap)
+                navigateToCapturedImage()
             }
         }
     }
@@ -129,10 +142,15 @@ fun CameraLivePreviewWithCapture(modifier: Modifier, onImageCaptured: (Bitmap) -
     val cameraProvider = cameraProviderFuture.get()
     val executor: Executor = ContextCompat.getMainExecutor(context)
 
+
+
     LaunchedEffect(Unit) {
         // Initialize picker position when the app starts
-        pickerPosition = Offset(width / 2f, height / 2f) // Initial position anywhere visible
+        //pickerPosition = Offset(width / 2f, height / 2f) // Initial position anywhere visible
+        colorViewModel.setPickerPosition(Offset(width / 2f, height / 2f))
     }
+
+
 
     DisposableEffect(Unit) {
         cameraProviderFuture.addListener({
@@ -158,6 +176,7 @@ fun CameraLivePreviewWithCapture(modifier: Modifier, onImageCaptured: (Bitmap) -
                 .setCaptureRequestOption(CaptureRequest.CONTROL_AWB_MODE, CaptureRequest.CONTROL_AWB_MODE_AUTO)
                 .setCaptureRequestOption(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON)
                 .setCaptureRequestOption(CaptureRequest.NOISE_REDUCTION_MODE, CameraMetadata.NOISE_REDUCTION_MODE_HIGH_QUALITY)
+                .setCaptureRequestOption(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE)
 
 
           val imageAnalysis =   imageAnalysisBuilder.build().also {
@@ -186,14 +205,17 @@ fun CameraLivePreviewWithCapture(modifier: Modifier, onImageCaptured: (Bitmap) -
 //            val clr = Color(colorArray[0], colorArray[1], colorArray[2])
 //            selectedColor = updateEMAColor(imageProxy, transformedPosition, alpha = 0.1f, selectedColor = clr)
 
-            val colorArray = getPixelColorAtOffset(imageProxy, transformedPosition)
-            val clr = updateEmaColor(colorArray, alpha = 0.1)
-            selectedColor = Color(clr[0], clr[1], clr[2])
+                        coroutineScope.launch {
+                            val colorArray = getPixelColorAtOffset(imageProxy, transformedPosition)
+                            val clr = updateEmaColor(colorArray, threshold = 10)
+                            colorViewModel.setSelectedColor(Color(clr[0], clr[1], clr[2]))
+                            imageProxy.close()
+                        }
 
+            //selectedColor = Color(clr[0], clr[1], clr[2])
                     }
-                    imageProxy.close()
-                }
 
+                }
             }
 
             val previewExtender = Camera2Interop.Extender(previewBuilder)
@@ -201,7 +223,6 @@ fun CameraLivePreviewWithCapture(modifier: Modifier, onImageCaptured: (Bitmap) -
                 .setCaptureRequestOption(CaptureRequest.CONTROL_AWB_MODE, CaptureRequest.CONTROL_AWB_MODE_AUTO)
                 .setCaptureRequestOption(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON)
                 .setCaptureRequestOption(CaptureRequest.NOISE_REDUCTION_MODE, CameraMetadata.NOISE_REDUCTION_MODE_HIGH_QUALITY)
-
 
 
             val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
@@ -229,13 +250,15 @@ fun CameraLivePreviewWithCapture(modifier: Modifier, onImageCaptured: (Bitmap) -
     }
 
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .pointerInput(Unit) {
                 detectVerticalDragGestures { change, dragAmount ->
                     change.consume()
-                    pickerSize += dragAmount
-                    pickerSize = pickerSize.coerceIn(25f, 200f)
+                    adjustablePickerSize += dragAmount
+                    adjustablePickerSize = adjustablePickerSize.coerceIn(25f, 200f)
+                    colorViewModel.setPickerSize(adjustablePickerSize)
+
                 }
             }
     ) {
@@ -290,7 +313,8 @@ fun CameraLivePreviewWithCapture(modifier: Modifier, onImageCaptured: (Bitmap) -
                                 override fun onCaptureSuccess(image: ImageProxy) {
                                     val bitmap = imageProxyToBitmap(image)
                                     if (bitmap != null) {
-                                        onImageCaptured(bitmap)
+                                        colorViewModel.setCapturedImage(bitmap)
+                                        navigateToCapturedImage()
                                     }
                                     image.close()
                                 }
@@ -448,6 +472,118 @@ private fun imageProxyToBitmapLiveRGBA(image: ImageProxy): Bitmap? {
 private fun rotateBitmap(bitmap: Bitmap, rotationDegrees: Int): Bitmap {
     val matrix = Matrix().apply { postRotate(rotationDegrees.toFloat()) }
     return Bitmap.createBitmap(bitmap,0,0,bitmap.width, bitmap.height, matrix, true)
+}
+
+fun getSmoothedPixelColorAtOffset(image: ImageProxy, offset: Offset, smoothingFactor: Double, sampleRadius: Int): IntArray {
+    val sampledColors = mutableListOf<IntArray>()
+
+    // Sample multiple points around the offset
+    for (dx in -sampleRadius..sampleRadius) {
+        for (dy in -sampleRadius..sampleRadius) {
+            val sampledOffset = Offset(offset.x + dx, offset.y + dy)
+            sampledColors.add(getPixelColorAtOffset1(image, sampledOffset))
+        }
+    }
+
+    // Calculate the average color of the sampled points
+    val avgRed = sampledColors.map { it[0] }.average()
+    val avgGreen = sampledColors.map { it[1] }.average()
+    val avgBlue = sampledColors.map { it[2] }.average()
+
+    if (smoothingFactor == 1.0) {
+        // Directly use the average color when smoothingFactor is 1.0
+        emaRed = avgRed
+        emaGreen = avgGreen
+        emaBlue = avgBlue
+    } else {
+        // Apply EMA for smoothing
+        emaRed = (smoothingFactor * avgRed) + ((1 - smoothingFactor) * emaRed)
+        emaGreen = (smoothingFactor * avgGreen) + ((1 - smoothingFactor) * emaGreen)
+        emaBlue = (smoothingFactor * avgBlue) + ((1 - smoothingFactor) * emaBlue)
+    }
+
+    // Apply EMA for smoothing
+    emaRed = (smoothingFactor * avgRed) + ((1 - smoothingFactor) * emaRed)
+    emaGreen = (smoothingFactor * avgGreen) + ((1 - smoothingFactor) * emaGreen)
+    emaBlue = (smoothingFactor * avgBlue) + ((1 - smoothingFactor) * emaBlue)
+
+    return intArrayOf(emaRed.toInt(), emaGreen.toInt(), emaBlue.toInt())
+}
+
+//Function to smooth color detection. The lower the alpha the smoother the detection
+fun updateEmaColor(newColor: IntArray, alpha: Double = 1.0, threshold: Int = 5): IntArray {
+    val (newRed, newGreen, newBlue) = newColor
+
+    if (!initialized) {
+        // Initialize EMA with the first color
+        emaRed = newRed.toDouble()
+        emaGreen = newGreen.toDouble()
+        emaBlue = newBlue.toDouble()
+        initialized = true
+    } else {
+        // Calculate the difference
+        val deltaRed = Math.abs(newRed - emaRed)
+        val deltaGreen = Math.abs(newGreen - emaGreen)
+        val deltaBlue = Math.abs(newBlue - emaBlue)
+
+        // Update EMA only if the change is significant
+        if (deltaRed > threshold || deltaGreen > threshold || deltaBlue > threshold) {
+            emaRed = alpha * newRed + (1 - alpha) * emaRed
+            emaGreen = alpha * newGreen + (1 - alpha) * emaGreen
+            emaBlue = alpha * newBlue + (1 - alpha) * emaBlue
+        }
+    }
+
+    // Return the smoothed color
+    return intArrayOf(emaRed.toInt(), emaGreen.toInt(), emaBlue.toInt())
+}
+
+
+// Function to retrieve the color at a specific offset
+fun getPixelColorAtOffset1(image: ImageProxy, offset: Offset): IntArray {
+    val planes = image.planes
+
+    val height = image.height
+    val width = image.width
+
+    val x = offset.x.coerceIn(0f, (width - 1).toFloat()).toInt()
+    val y = offset.y.coerceIn(0f, (height - 1).toFloat()).toInt()
+
+    fun byteBufferToByteArray(buffer: ByteBuffer): ByteArray {
+        buffer.rewind()
+        val data = ByteArray(buffer.remaining())
+        buffer.get(data)
+        return data
+    }
+
+    val yArr = byteBufferToByteArray(planes[0].buffer)
+    val yPixelStride = planes[0].pixelStride
+    val yRowStride = planes[0].rowStride
+
+    val uArr = byteBufferToByteArray(planes[1].buffer)
+    val uPixelStride = planes[1].pixelStride
+    val uRowStride = planes[1].rowStride
+
+    val vArr = byteBufferToByteArray(planes[2].buffer)
+    val vPixelStride = planes[2].pixelStride
+    val vRowStride = planes[2].rowStride
+
+    val yIndex = y * yRowStride + x * yPixelStride
+    val yValue = yArr[yIndex].toInt() and 0xFF
+
+    val uvIndex = (y / 2) * uRowStride + (x / 2) * uPixelStride
+    val uValue = (uArr[uvIndex].toInt() and 0xFF) - 128
+    val vValue = (vArr[uvIndex].toInt() and 0xFF) - 128
+
+    val r = yValue + 1.370705 * vValue
+    val g = yValue - 0.698001 * vValue - 0.337633 * uValue
+    val b = yValue + 1.732446 * uValue
+
+    val rClamped = r.coerceIn(0.0, 255.0).toInt()
+    val gClamped = g.coerceIn(0.0, 255.0).toInt()
+    val bClamped = b.coerceIn(0.0, 255.0).toInt()
+
+    return intArrayOf(rClamped, gClamped, bClamped)
 }
 
 //Function to smooth color detection. The lower the alpha the smoother the detection
@@ -641,6 +777,77 @@ fun getPixelColorAtOffset(image: ImageProxy, offset: Offset): IntArray {
 
     // Return the RGB values as an IntArray
     return intArrayOf(rClamped, gClamped, bClamped)
+}
+
+fun getAverageColorAtOffset(image: ImageProxy, offset: Offset, areaSize: Int = 3): IntArray {
+    val planes = image.planes
+
+    val height = image.height
+    val width = image.width
+
+    // Helper function to convert ByteBuffer to byte array
+    fun byteBufferToByteArray(buffer: ByteBuffer): ByteArray {
+        buffer.rewind()
+        val data = ByteArray(buffer.remaining())
+        buffer.get(data)
+        return data
+    }
+
+    // Y
+    val yArr = byteBufferToByteArray(planes[0].buffer)
+    val yPixelStride = planes[0].pixelStride
+    val yRowStride = planes[0].rowStride
+
+    // U
+    val uArr = byteBufferToByteArray(planes[1].buffer)
+    val uPixelStride = planes[1].pixelStride
+    val uRowStride = planes[1].rowStride
+
+    // V
+    val vArr = byteBufferToByteArray(planes[2].buffer)
+    val vPixelStride = planes[2].pixelStride
+    val vRowStride = planes[2].rowStride
+
+    var rSum = 0.0
+    var gSum = 0.0
+    var bSum = 0.0
+    var count = 0
+
+    // Calculate the range to average around the target pixel
+    for (dy in -areaSize / 2..areaSize / 2) {
+        for (dx in -areaSize / 2..areaSize / 2) {
+            // Ensure the offset is within the image bounds
+            val x = (offset.x + dx).coerceIn(0f, (width - 1).toFloat()).toInt()
+            val y = (offset.y + dy).coerceIn(0f, (height - 1).toFloat()).toInt()
+
+            // Calculate indices for the specified offset
+            val yIndex = y * yRowStride + x * yPixelStride
+            val yValue = yArr[yIndex].toInt() and 0xFF
+
+            // Compute the UV index for the specified offset
+            val uvIndex = (y / 2) * uRowStride + (x / 2) * uPixelStride
+            val uValue = (uArr[uvIndex].toInt() and 0xFF) - 128
+            val vValue = (vArr[uvIndex].toInt() and 0xFF) - 128
+
+            val r = yValue + 1.370705 * vValue
+            val g = yValue - 0.698001 * vValue - 0.337633 * uValue
+            val b = yValue + 1.732446 * uValue
+
+            // Accumulate the RGB values
+            rSum += r.coerceIn(0.0, 255.0)
+            gSum += g.coerceIn(0.0, 255.0)
+            bSum += b.coerceIn(0.0, 255.0)
+            count++
+        }
+    }
+
+    // Calculate the average RGB values
+    val rAverage = (rSum / count).toInt()
+    val gAverage = (gSum / count).toInt()
+    val bAverage = (bSum / count).toInt()
+
+    // Return the averaged RGB values as an IntArray
+    return intArrayOf(rAverage, gAverage, bAverage)
 }
 
 // Smooth color using a simple moving average

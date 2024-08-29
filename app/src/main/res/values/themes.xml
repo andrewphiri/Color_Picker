@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.ColorPicker" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.ColorPicker" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowTranslucentNavigation">true</item>
+    </style>
 
     <style name="Theme.ColorPicker.SplashScreen" parent="Theme.AppCompat.NoActionBar">
         <!-- Set the splash screen background, animated icon, and animation

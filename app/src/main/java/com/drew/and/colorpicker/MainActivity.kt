@@ -1,6 +1,6 @@
 package com.drew.and.colorpicker
 
-import ColorPickerApp
+import CapturedImageScreen
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -8,7 +8,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import android.Manifest
 import android.content.pm.PackageManager
-import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -30,10 +29,15 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import com.drew.and.colorpicker.ui.theme.ColorPickerTheme
+import dagger.hilt.android.AndroidEntryPoint
 
 import androidx.activity.compose.rememberLauncherForActivityResult as rememberLauncherForActivityResult1
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,46 +54,17 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-}
 
-@Composable
-fun CameraPermissionRequest(modifier: Modifier = Modifier) {
-    val context = LocalContext.current
-    var hasCameraPermission by remember { mutableStateOf(
-        ContextCompat.checkSelfPermission(
-            context,
-            Manifest.permission.CAMERA
-        ) == PackageManager.PERMISSION_GRANTED) }
-
-    val permissionLauncher = rememberLauncherForActivityResult1(
-        contract = ActivityResultContracts.RequestPermission(),
-        onResult = { isGranted ->
-            hasCameraPermission = isGranted
+    fun hideNavBars() {
+        // Get the insets controller for the window
+        val controller = WindowCompat.getInsetsController(window, window.decorView).apply {
+            hide(WindowInsetsCompat.Type.systemBars())
+            systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
-    )
-
-    LaunchedEffect(Unit) {
-        permissionLauncher.launch(Manifest.permission.CAMERA)
-    }
-    if (hasCameraPermission) {
-        ColorPickerApp(modifier = modifier)
-    } else {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ){
-            Text(
-                modifier = Modifier.fillMaxWidth(),
-                text = "Camera permission is required to use this app.",
-                textAlign = TextAlign.Center
-            )
-        }
-
     }
 }
+
+
 
 
 @Composable
@@ -107,3 +82,4 @@ fun GreetingPreview() {
         Greeting("Android")
     }
 }
+

@@ -1,6 +1,10 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
+    id("kotlin-kapt")
+    id ("com.google.dagger.hilt.android")
+    id ("com.google.devtools.ksp")
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -35,6 +39,11 @@ android {
     }
     kotlinOptions {
         jvmTarget = "1.8"
+    }
+
+    // Allow references to generated code
+    kapt {
+        correctErrorTypes = true
     }
 
     buildFeatures {
@@ -84,5 +93,26 @@ dependencies {
     implementation (libs.vision.common)
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.tensorflow.lite)
+
+    //HiltViewModel
+    implementation(libs.hilt.android)
+    implementation (libs.androidx.hilt.navigation.compose)
+    kapt(libs.hilt.android.compiler)
+
+    // ViewModel for Jetpack Compose
+    implementation (libs.androidx.lifecycle.viewmodel.compose)
+
+    // LiveData extensions for Jetpack Compose
+    implementation(libs.androidx.runtime.livedata)
+
+    //Navigation
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.kotlinx.serialization.json)
+
+    implementation("androidx.room:room-runtime:2.6.1")
+
+    // To use Kotlin Symbol Processing (KSP)
+    ksp("androidx.room:room-compiler:$2.6.1")
+    implementation ("androidx.room:room-ktx:$2.6.1")
 
 }
