@@ -1,6 +1,5 @@
 package com.drew.and.colorpicker
 
-
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -37,7 +36,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -48,12 +46,9 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
-import androidx.hilt.navigation.compose.hiltViewModel
 import com.drew.and.colorpicker.ViewModel.ColorViewModel
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
-import toHex
-import toRgb
 import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
 import java.util.concurrent.Executor
@@ -106,6 +101,7 @@ fun CameraLivePreviewWithCapture(
     width = LocalContext.current.resources.displayMetrics.widthPixels
     height = LocalContext.current.resources.displayMetrics.heightPixels
     var screenSize = IntSize(width = width, height = height)
+    val closestColor by colorViewModel.findClosestColor.observeAsState(initial = "")
 
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()) { result ->
@@ -209,6 +205,7 @@ fun CameraLivePreviewWithCapture(
                             val colorArray = getPixelColorAtOffset(imageProxy, transformedPosition)
                             val clr = updateEmaColor(colorArray, threshold = 10)
                             colorViewModel.setSelectedColor(Color(clr[0], clr[1], clr[2]))
+                            colorViewModel.setFindClosestColor(findClosestColor(clr))
                             imageProxy.close()
                         }
 
@@ -287,13 +284,8 @@ fun CameraLivePreviewWithCapture(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(100.dp)
-                .align(Alignment.BottomCenter)
-                .background(
-                    shape = RectangleShape,
-                    brush = Brush.verticalGradient(listOf(Color.Transparent, Color.Black)),
-                    alpha = 0.8f
-                ),
+                .height(120.dp)
+                .align(Alignment.BottomCenter),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
@@ -375,6 +367,11 @@ fun CameraLivePreviewWithCapture(
                     verticalArrangement =  Arrangement.spacedBy(8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    Text(
+                        text = closestColor,
+                        style = MaterialTheme.typography.titleSmall
+                        )
+
                     Text(
                         modifier = Modifier
                             .align(Alignment.Start),
@@ -994,5 +991,21 @@ private fun yuvToRgb(y: Int, u: Int, v: Int): Int {
 }
 
 
+
+// Extension function to convert Color to HEX string
+fun Color.toHex(): String {
+    val red = (red * 255).toInt()
+    val green = (green * 255).toInt()
+    val blue = (blue * 255).toInt()
+    return String.format("#%02X%02X%02X", red, green, blue)
+}
+
+// Extension function to convert Color to RGB string
+fun Color.toRgb(): String {
+    val red = (red * 255).toInt()
+    val green = (green * 255).toInt()
+    val blue = (blue * 255).toInt()
+    return "RGB($red, $green, $blue)"
+}
 
 

@@ -31,6 +31,9 @@ class ColorViewModel @Inject constructor(repository: ColorRepository) : ViewMode
     private val _capturedImage = MutableLiveData<Bitmap?>()
     val capturedImage: LiveData<Bitmap?> get() = _capturedImage
 
+    private val _findClosestColor = MutableLiveData<String>()
+    val findClosestColor: LiveData<String> get() = _findClosestColor
+
     val allColors: StateFlow<List<ColorEntity>> = repository
         .getAllColors()
         .map { listOf<ColorEntity>() }.stateIn(
@@ -53,5 +56,9 @@ class ColorViewModel @Inject constructor(repository: ColorRepository) : ViewMode
 
     fun setCapturedImage(bitmap: Bitmap?) {
         _capturedImage.value = bitmap
+    }
+
+    fun setFindClosestColor(color: String) {
+        _findClosestColor.value = color
     }
 }

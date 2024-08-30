@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.drew.and.colorpicker.ViewModel.ColorViewModel
+import com.drew.and.colorpicker.findClosestColor
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -44,6 +45,8 @@ fun CapturedImageScreen(
     var width by remember { mutableStateOf(0) }
     var height by remember { mutableStateOf(0) }
 
+    val closestColor by colorViewModel.findClosestColor.observeAsState(initial = "")
+
     if (capturedImage != null) {
 
     }
@@ -62,6 +65,7 @@ fun CapturedImageScreen(
                         IntSize(width, height)
                     ))
                 colorViewModel.setSelectedColor(adjustedSelectedColor)
+                colorViewModel.setFindClosestColor(findClosestColor(adjustedSelectedColor.toIntArray()))
 
                 // Initialize picker position when the app starts
                 adjustedPickerPosition = Offset(width / 2f, height / 2f) // Initial position anywhere visible
@@ -108,6 +112,7 @@ fun CapturedImageScreen(
                                         )
                                     )
                                 colorViewModel.setSelectedColor(adjustedSelectedColor)
+                                colorViewModel.setFindClosestColor(findClosestColor(adjustedSelectedColor.toIntArray()))
                             }
                         }
                 ) {
@@ -146,6 +151,11 @@ fun CapturedImageScreen(
                             .height(10.dp)
                             .width(50.dp)
                             .background(color = selectedColor, shape = RectangleShape)
+                    )
+
+                    Text(
+                        text = closestColor,
+                        style = MaterialTheme.typography.titleSmall
                     )
 
                     Row(
@@ -209,7 +219,7 @@ private fun pickColorFromBitmap(bitmap: Bitmap, position: Offset): Color {
 //}
 
 // Extension function to convert Color to HEX string
- fun Color.toHex(): String {
+ private fun Color.toHex(): String {
     val red = (red * 255).toInt()
     val green = (green * 255).toInt()
     val blue = (blue * 255).toInt()
@@ -217,11 +227,27 @@ private fun pickColorFromBitmap(bitmap: Bitmap, position: Offset): Color {
 }
 
 // Extension function to convert Color to RGB string
-fun Color.toRgb(): String {
+private fun Color.toRgb(): String {
     val red = (red * 255).toInt()
     val green = (green * 255).toInt()
     val blue = (blue * 255).toInt()
     return "RGB($red, $green, $blue)"
+}
+
+private fun String.hexToColor(): Color {
+    val hexColor = this.replace("#", "")
+    val red = hexColor.substring(0, 2).toInt(16) / 255f
+    val green = hexColor.substring(2, 4).toInt(16) / 255f
+    val blue = hexColor.substring(4, 6).toInt(16)/ 255f
+    return Color(red, green, blue)
+}
+
+fun Color.toIntArray(): IntArray {
+    return intArrayOf(
+        (red * 255).toInt(),(green * 255).toInt(),
+        (blue * 255).toInt(),
+        (alpha * 255).toInt()
+    )
 }
 
 private fun transformCoordinates(pickerPosition: Offset, imageBitmap: Bitmap, size: IntSize): Offset {

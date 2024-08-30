@@ -109,10 +109,10 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.kotlinx.serialization.json)
 
-    implementation("androidx.room:room-runtime:2.6.1")
+    implementation(libs.androidx.room.runtime)
 
     // To use Kotlin Symbol Processing (KSP)
-    ksp("androidx.room:room-compiler:$2.6.1")
-    implementation ("androidx.room:room-ktx:$2.6.1")
+    ksp(libs.androidx.room.compiler)
+    implementation (libs.androidx.room.ktx)
 
 }
