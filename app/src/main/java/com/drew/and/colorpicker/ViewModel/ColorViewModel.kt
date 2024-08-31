@@ -1,6 +1,7 @@
 package com.drew.and.colorpicker.ViewModel
 
 import android.graphics.Bitmap
+import android.util.Log
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.LiveData
@@ -14,10 +15,11 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class ColorViewModel @Inject constructor(repository: ColorRepository) : ViewModel() {
+class ColorViewModel @Inject constructor(private val repository: ColorRepository) : ViewModel() {
 
     private val _selectedColor = MutableLiveData<Color>()
     val selectedColor: LiveData<Color> get() = _selectedColor
@@ -28,6 +30,9 @@ class ColorViewModel @Inject constructor(repository: ColorRepository) : ViewMode
     private val _pickerSize = MutableLiveData<Float>()
     val pickerSize: LiveData<Float> get() = _pickerSize
 
+    private val _areaSize = MutableLiveData<Int>()
+    val areaSize: LiveData<Int> get() = _areaSize
+
     private val _capturedImage = MutableLiveData<Bitmap?>()
     val capturedImage: LiveData<Bitmap?> get() = _capturedImage
 
@@ -36,10 +41,10 @@ class ColorViewModel @Inject constructor(repository: ColorRepository) : ViewMode
 
     val allColors: StateFlow<List<ColorEntity>> = repository
         .getAllColors()
-        .map { listOf<ColorEntity>() }.stateIn(
+        .map { it }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList()
+            initialValue = listOf()
         )
 
     fun setSelectedColor(color: Color) {
@@ -48,6 +53,10 @@ class ColorViewModel @Inject constructor(repository: ColorRepository) : ViewMode
 
     fun setPickerPosition(offset: Offset) {
         _pickerPosition.value = offset
+    }
+
+    fun setAreaSize(size: Int) {
+        _areaSize.value = size
     }
 
     fun setPickerSize(size: Float) {
@@ -61,4 +70,18 @@ class ColorViewModel @Inject constructor(repository: ColorRepository) : ViewMode
     fun setFindClosestColor(color: String) {
         _findClosestColor.value = color
     }
+
+    fun saveColor(color: ColorEntity) {
+        viewModelScope.launch {
+            repository.saveColor(color)
+        }
+        Log.d("ColorViewModel", "Color saved: $color")
+    }
+
+    fun deleteColor(color: ColorEntity) {
+        viewModelScope.launch {
+            repository.deleteColor(color)
+        }
+    }
+
 }

@@ -5,9 +5,18 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
@@ -21,21 +30,29 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.drew.and.colorpicker.R
 import com.drew.and.colorpicker.ViewModel.ColorViewModel
+import com.drew.and.colorpicker.data.ColorEntity
 import com.drew.and.colorpicker.findClosestColor
+import com.drew.and.colorpicker.toHex
+import com.drew.and.colorpicker.toRgb
 import kotlinx.serialization.Serializable
 
 @Serializable
 object CapturedImageScreenDestination
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CapturedImageScreen(
     modifier: Modifier = Modifier,
     colorViewModel: ColorViewModel,
-    navigateBack: () -> Unit
+    navigateBack: () -> Unit,
+    navigateToSavedColorsList: () -> Unit,
 ) {
     val capturedImage by colorViewModel.capturedImage.observeAsState(initial = null)
     var adjustedSelectedColor by remember { mutableStateOf(Color.Transparent) }
@@ -47,9 +64,6 @@ fun CapturedImageScreen(
 
     val closestColor by colorViewModel.findClosestColor.observeAsState(initial = "")
 
-    if (capturedImage != null) {
-
-    }
 
         Column(modifier = modifier
             .fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -72,6 +86,52 @@ fun CapturedImageScreen(
                 colorViewModel.setPickerPosition(adjustedPickerPosition)
 
             }
+
+            TopAppBar(
+                title = {
+                    Text(text = "Pick a Color")
+                },
+                navigationIcon = {
+                    IconButton(onClick = {
+                        navigateBack()
+                        colorViewModel.setCapturedImage(null)
+                        colorViewModel.setSelectedColor(Color.Transparent)
+                        colorViewModel.setPickerPosition(Offset.Zero)
+                    }) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "back"
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(
+                        onClick = navigateToSavedColorsList
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.outline_list_alt_24),
+                            contentDescription = "My color list" )
+                    }
+
+                    IconButton(
+                        onClick = {
+                            colorViewModel.saveColor(
+                                ColorEntity(
+                                    hexCode = selectedColor.toHex(),
+                                    rgbCode = selectedColor.toRgb(),
+                                    name = closestColor
+                                )
+                            )
+                        }
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.outline_save_24),
+                            contentDescription = "Save color"
+                        )
+                    }
+                }
+            )
+
             Column(
                 modifier = Modifier
                     .fillMaxSize(),
@@ -112,10 +172,15 @@ fun CapturedImageScreen(
                                         )
                                     )
                                 colorViewModel.setSelectedColor(adjustedSelectedColor)
-                                colorViewModel.setFindClosestColor(findClosestColor(adjustedSelectedColor.toIntArray()))
+                                colorViewModel.setFindClosestColor(
+                                    findClosestColor(
+                                        adjustedSelectedColor.toIntArray()
+                                    )
+                                )
                             }
                         }
                 ) {
+
                     Image(
                         bitmap = capturedImage!!.asImageBitmap(),
                         contentDescription = null,
@@ -136,55 +201,71 @@ fun CapturedImageScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(0.3f, true)
+                        .weight(0.2f, true)
                         .background(
                             shape = RectangleShape,
                             brush = Brush.verticalGradient(listOf(Color.Transparent, Color.Black)),
                             alpha = 0.8f
-                        ),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                        )
+                        .padding(8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.CenterHorizontally)
-                            .height(10.dp)
-                            .width(50.dp)
-                            .background(color = selectedColor, shape = RectangleShape)
-                    )
-
-                    Text(
-                        text = closestColor,
-                        style = MaterialTheme.typography.titleSmall
-                    )
 
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        Text(
-                            text = selectedColor.toHex(),
-                            style = MaterialTheme.typography.bodySmall,
+                        Box(
+                            modifier = Modifier
+                                .height(10.dp)
+                                .width(50.dp)
+                                .background(color = selectedColor, shape = RectangleShape)
+
                         )
 
-                        Text(
-                            text = selectedColor.toRgb(),
-                            style = MaterialTheme.typography.bodySmall,
-                        )
+                            Text(
+                                text = closestColor,
+                                style = MaterialTheme.typography.titleSmall,
+                                textAlign = TextAlign.Center
+                            )
+
                     }
 
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                            Text(
+                                modifier = Modifier
+                                    .weight(1f, true),
+                                text = selectedColor.toHex(),
+                                style = MaterialTheme.typography.bodySmall,
+                                textAlign = TextAlign.Center
+                            )
+
+                            Text(
+                                modifier = Modifier
+                                    .weight(1f, true),
+                                text = selectedColor.toRgb(),
+                                style = MaterialTheme.typography.bodySmall,
+                                textAlign = TextAlign.Center
+                            )
+
+                    }
 
                     // Reset button
-                    Button(
-                        onClick = {
-                            navigateBack()
-                            colorViewModel.setCapturedImage(null)
-                            colorViewModel.setSelectedColor(Color.Transparent)
-                            colorViewModel.setPickerPosition(Offset.Zero)
-
-                        }) {
-                        Text("Back")
-                    }
+//                    Button(
+//                        shape = MaterialTheme.shapes.small,
+//                        onClick = {
+//                            navigateBack()
+//                            colorViewModel.setCapturedImage(null)
+//                            colorViewModel.setSelectedColor(Color.Transparent)
+//                            colorViewModel.setPickerPosition(Offset.Zero)
+//
+//                        }) {
+//                        Text("Back")
+//                    }
                 }
             }
 

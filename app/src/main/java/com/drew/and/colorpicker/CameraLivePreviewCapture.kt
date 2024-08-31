@@ -27,9 +27,15 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarColors
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -47,6 +53,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import com.drew.and.colorpicker.ViewModel.ColorViewModel
+import com.drew.and.colorpicker.data.ColorEntity
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import java.io.ByteArrayOutputStream
@@ -63,13 +70,15 @@ var initialized = false
 @Serializable
 object CameraLivePreviewCaptureScreenDestination
 
+@ExperimentalMaterial3Api
 @SuppressLint("RestrictedApi")
 @OptIn(ExperimentalCamera2Interop::class)
 @Composable
 fun CameraLivePreviewWithCapture(
     modifier: Modifier = Modifier,
     colorViewModel: ColorViewModel,
-    navigateToCapturedImage: () -> Unit
+    navigateToCapturedImage: () -> Unit,
+    navigateToSavedColorsList: () -> Unit,
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -94,6 +103,8 @@ fun CameraLivePreviewWithCapture(
     val selectedColor by colorViewModel.selectedColor.observeAsState(initial = Color.Transparent)
     val pickerPosition by colorViewModel.pickerPosition.observeAsState(initial = Offset.Zero)
     val pickerSize by colorViewModel.pickerSize.observeAsState(initial = 25f)
+    val areaSize by colorViewModel.areaSize.observeAsState(initial = 3)
+    var adjustableAreaSize by remember{ mutableStateOf(3) }
 //    var pickerPosition by remember { mutableStateOf(Offset.Zero) }
     var adjustablePickerSize by remember{ mutableStateOf(25f) }
     var width by rememberSaveable { mutableStateOf(0) }
@@ -101,6 +112,7 @@ fun CameraLivePreviewWithCapture(
     width = LocalContext.current.resources.displayMetrics.widthPixels
     height = LocalContext.current.resources.displayMetrics.heightPixels
     var screenSize = IntSize(width = width, height = height)
+
     val closestColor by colorViewModel.findClosestColor.observeAsState(initial = "")
 
     val launcher = rememberLauncherForActivityResult(
@@ -202,7 +214,8 @@ fun CameraLivePreviewWithCapture(
 //            selectedColor = updateEMAColor(imageProxy, transformedPosition, alpha = 0.1f, selectedColor = clr)
 
                         coroutineScope.launch {
-                            val colorArray = getPixelColorAtOffset(imageProxy, transformedPosition)
+                            val colorArray =
+                                getAverageColorAtOffset(image = imageProxy, offset =  transformedPosition, areaSize = areaSize)
                             val clr = updateEmaColor(colorArray, threshold = 10)
                             colorViewModel.setSelectedColor(Color(clr[0], clr[1], clr[2]))
                             colorViewModel.setFindClosestColor(findClosestColor(clr))
@@ -253,13 +266,14 @@ fun CameraLivePreviewWithCapture(
                 detectVerticalDragGestures { change, dragAmount ->
                     change.consume()
                     adjustablePickerSize += dragAmount
+                    adjustableAreaSize += dragAmount.toInt()
                     adjustablePickerSize = adjustablePickerSize.coerceIn(25f, 200f)
+                    adjustableAreaSize = adjustableAreaSize.coerceIn(1, 20)
                     colorViewModel.setPickerSize(adjustablePickerSize)
-
+                    colorViewModel.setAreaSize(adjustableAreaSize)
                 }
             }
     ) {
-
 
         // Show the CameraX preview
         AndroidView(
@@ -281,10 +295,49 @@ fun CameraLivePreviewWithCapture(
         }
 
 
+
+        TopAppBar(
+            modifier = Modifier.background(color = Color.Transparent),
+            colors = TopAppBarColors(containerColor = Color.Transparent,
+                titleContentColor = Color.White,
+                navigationIconContentColor = Color.White,
+                actionIconContentColor = Color.White,
+                scrolledContainerColor = Color.Transparent),
+            title = {
+                Text(text = "")
+            },
+            actions = {
+                IconButton(
+                    onClick = navigateToSavedColorsList
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.outline_list_alt_24),
+                        contentDescription = "My color list" )
+                }
+
+                IconButton(
+                    onClick = {
+                        colorViewModel.saveColor(
+                            ColorEntity(
+                                hexCode = selectedColor.toHex(),
+                                rgbCode = selectedColor.toRgb(),
+                                name = closestColor
+                            )
+                        )
+                    }
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.outline_save_24),
+                        contentDescription = "Save color"
+                    )
+                }
+            }
+        )
+
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(120.dp)
+                .height(110.dp)
                 .align(Alignment.BottomCenter),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -363,13 +416,14 @@ fun CameraLivePreviewWithCapture(
                     modifier = Modifier
                         .align(Alignment.CenterStart)
                         .fillMaxHeight()
-                        .padding(16.dp),
+                        .padding(4.dp),
                     verticalArrangement =  Arrangement.spacedBy(8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
                         text = closestColor,
-                        style = MaterialTheme.typography.titleSmall
+                        style = MaterialTheme.typography.titleSmall,
+                        color = Color.White
                         )
 
                     Text(
@@ -666,60 +720,6 @@ fun yuvToRgb5(image: ImageProxy): IntArray {
     return rgb
 }
 
-fun getCenterPixelColor(image: ImageProxy, halfHeight: Int , halfWidth: Int): IntArray {
-    val planes = image.planes
-
-    val height = image.height
-    val width = image.width
-
-    // Calculate the center coordinates
-//    val halfHeight = height / 2
-//    val halfWidth = width / 2
-
-    // Helper function to convert ByteBuffer to byte array
-    fun byteBufferToByteArray(buffer: ByteBuffer): ByteArray {
-        buffer.rewind()
-        val data = ByteArray(buffer.remaining())
-        buffer.get(data)
-        return data
-    }
-
-    // Y
-    val yArr = byteBufferToByteArray(planes[0].buffer)
-    val yPixelStride = planes[0].pixelStride.dp.value.toInt()
-    val yRowStride = planes[0].rowStride.dp.value.toInt()
-
-    // U
-    val uArr = byteBufferToByteArray(planes[1].buffer)
-    val uPixelStride = planes[1].pixelStride.dp.value.toInt()
-    val uRowStride = planes[1].rowStride.dp.value.toInt()
-
-    // V
-    val vArr = byteBufferToByteArray(planes[2].buffer)
-    val vPixelStride = planes[2].pixelStride
-    val vRowStride = planes[2].rowStride
-
-    // Calculate indices for the center pixel
-    val yIndex = halfHeight * yRowStride + halfWidth * yPixelStride
-    val y = yArr[yIndex].toInt() and 0xFF
-
-    // Compute the UV index for the center pixel
-    val uvIndex = (halfHeight / 2) * uRowStride + (halfWidth / 2) * uPixelStride
-    val u = (uArr[uvIndex].toInt() and 0xFF) - 128
-    val v = (vArr[uvIndex].toInt() and 0xFF) - 128
-
-    val r = y + 1.370705 * v
-    val g = y - 0.698001 * v - 0.337633 * u
-    val b = y + 1.732446 * u
-
-    // Clamp the RGB values to [0, 255]
-    val rClamped = r.coerceIn(0.0, 255.0).toInt()
-    val gClamped = g.coerceIn(0.0, 255.0).toInt()
-    val bClamped = b.coerceIn(0.0, 255.0).toInt()
-
-    // Return the RGB values as an IntArray
-    return intArrayOf(rClamped, gClamped, bClamped)
-}
 
 fun getPixelColorAtOffset(image: ImageProxy, offset: Offset): IntArray {
     val planes = image.planes
