@@ -22,7 +22,7 @@ fun ColorAppNavHost(
     modifier: Modifier = Modifier,
     navController: NavHostController
 ) {
- val colorViewModel: ColorViewModel = hiltViewModel()
+    val colorViewModel: ColorViewModel = hiltViewModel()
     NavHost(
         modifier = modifier,
         navController = navController,

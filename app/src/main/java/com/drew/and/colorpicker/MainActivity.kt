@@ -8,6 +8,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import android.Manifest
 import android.content.pm.PackageManager
+import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -45,6 +46,10 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
+            Log.i("PredefinedColors: ", "${predefinedColors.size}")
+            val myColors = predefinedColors.keys.groupBy { it }
+
+            Log.i("PredefinedColors: ", "${myColors.size}")
 
             ColorPickerTheme {
                 Scaffold { innerPadding ->
