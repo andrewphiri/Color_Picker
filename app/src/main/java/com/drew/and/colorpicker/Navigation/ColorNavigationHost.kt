@@ -2,6 +2,7 @@ package com.drew.and.colorpicker.Navigation
 
 import CapturedImageScreen
 import CapturedImageScreenDestination
+import android.view.Window
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -20,7 +21,8 @@ import com.drew.and.colorpicker.ViewModel.ColorViewModel
 @Composable
 fun ColorAppNavHost(
     modifier: Modifier = Modifier,
-    navController: NavHostController
+    navController: NavHostController,
+    window: Window
 ) {
     val colorViewModel: ColorViewModel = hiltViewModel()
     NavHost(
@@ -36,8 +38,9 @@ fun ColorAppNavHost(
                 },
                 navigateToSavedColorsList = {
                     navController.navigate(SavedColorsScreenDestination)
-                }
-            )
+                },
+                window = window
+                )
             }
         composable<CapturedImageScreenDestination> {
             CapturedImageScreen(

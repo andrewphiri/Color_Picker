@@ -3,16 +3,12 @@ package com.drew.and.colorpicker
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.graphics.ImageFormat
-import android.graphics.Matrix
-import android.graphics.Rect
-import android.graphics.YuvImage
 import android.hardware.camera2.CameraMetadata
 import android.hardware.camera2.CaptureRequest
 import android.os.Build
-import android.util.Log
+import android.view.Window
+import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -27,8 +23,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -56,16 +50,8 @@ import com.drew.and.colorpicker.ViewModel.ColorViewModel
 import com.drew.and.colorpicker.data.ColorEntity
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
-import java.io.ByteArrayOutputStream
-import java.nio.ByteBuffer
 import java.util.concurrent.Executor
 import java.util.concurrent.Executors
-
-
-var emaRed = Color.Transparent.red.toDouble()
-var emaGreen = Color.Transparent.green.toDouble()
-var emaBlue = Color.Transparent.blue.toDouble()
-var initialized = false
 
 @Serializable
 object CameraLivePreviewCaptureScreenDestination
@@ -79,7 +65,12 @@ fun CameraLivePreviewWithCapture(
     colorViewModel: ColorViewModel,
     navigateToCapturedImage: () -> Unit,
     navigateToSavedColorsList: () -> Unit,
+    window: Window
 ) {
+
+    //Keep screen on during preview
+    window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
@@ -103,8 +94,8 @@ fun CameraLivePreviewWithCapture(
     val selectedColor by colorViewModel.selectedColor.observeAsState(initial = Color.Transparent)
     val pickerPosition by colorViewModel.pickerPosition.observeAsState(initial = Offset.Zero)
     val pickerSize by colorViewModel.pickerSize.observeAsState(initial = 25f)
-    val areaSize by colorViewModel.areaSize.observeAsState(initial = 3)
-    var adjustableAreaSize by remember{ mutableStateOf(3) }
+    val areaSize by colorViewModel.areaSize.observeAsState(initial = 4)
+    var adjustableAreaSize by remember{ mutableStateOf(1) }
 //    var pickerPosition by remember { mutableStateOf(Offset.Zero) }
     var adjustablePickerSize by remember{ mutableStateOf(25f) }
     var width by rememberSaveable { mutableStateOf(0) }
@@ -114,7 +105,6 @@ fun CameraLivePreviewWithCapture(
     var screenSize = IntSize(width = width, height = height)
 
     val closestColor by colorViewModel.findClosestColor.observeAsState(initial = "")
-
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == android.app.Activity.RESULT_OK) {
@@ -250,8 +240,8 @@ fun CameraLivePreviewWithCapture(
                     change.consume()
                     adjustablePickerSize += dragAmount
                     adjustableAreaSize += dragAmount.toInt()
-                    adjustablePickerSize = adjustablePickerSize.coerceIn(25f, 200f)
-                    adjustableAreaSize = adjustableAreaSize.coerceIn(3, 20)
+                    adjustablePickerSize = adjustablePickerSize.coerceIn(10f, 200f)
+                    adjustableAreaSize = adjustableAreaSize.coerceIn(1, 30)
                     colorViewModel.setPickerSize(adjustablePickerSize)
                     colorViewModel.setAreaSize(adjustableAreaSize)
                 }
@@ -343,6 +333,7 @@ fun CameraLivePreviewWithCapture(
                                     if (bitmap != null) {
                                         colorViewModel.setCapturedImage(bitmap)
                                         navigateToCapturedImage()
+                                        window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                                     }
                                     image.close()
                                 }

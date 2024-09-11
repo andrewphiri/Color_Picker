@@ -1,4 +1,6 @@
 import android.graphics.Bitmap
+import android.view.Window
+import android.view.WindowManager
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -57,6 +59,8 @@ fun CapturedImageScreen(
     navigateBack: () -> Unit,
     navigateToSavedColorsList: () -> Unit,
 ) {
+
+
     val capturedImage by colorViewModel.capturedImage.observeAsState(initial = null)
     var adjustedSelectedColor by remember { mutableStateOf(Color.Transparent) }
     var adjustedPickerPosition by remember { mutableStateOf(Offset.Zero) }
@@ -66,6 +70,7 @@ fun CapturedImageScreen(
     var height by remember { mutableStateOf(0) }
 
     val closestColor by colorViewModel.findClosestColor.observeAsState(initial = "")
+
 
 
     Column(modifier = modifier
@@ -206,12 +211,7 @@ fun CapturedImageScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(0.2f, true)
-                    .background(
-                        shape = RectangleShape,
-                        brush = Brush.verticalGradient(listOf(Color.Transparent, Color.Black)),
-                        alpha = 0.8f
-                    )
-                    .padding(8.dp),
+                    .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
@@ -222,7 +222,7 @@ fun CapturedImageScreen(
                 ) {
                     Box(
                         modifier = Modifier
-                            .height(10.dp)
+                            .height(20.dp)
                             .width(50.dp)
                             .background(color = selectedColor, shape = RectangleShape)
 
@@ -262,8 +262,8 @@ fun CapturedImageScreen(
         }
 
     }
-
 }
+
 
 
 

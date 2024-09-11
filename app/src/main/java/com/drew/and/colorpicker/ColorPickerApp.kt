@@ -2,6 +2,7 @@ package com.drew.and.colorpicker
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.view.Window
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -38,34 +39,10 @@ import com.drew.and.colorpicker.Navigation.ColorAppNavHost
 @Composable
 fun ColorPickerApp(
     modifier: Modifier = Modifier,
-    navController: NavHostController = rememberNavController()
+    navController: NavHostController = rememberNavController(),
+    window: Window
 ) {
-    val navigationBarHeight = WindowInsets.navigationBars.getBottom(LocalDensity.current)
-    val view = LocalView.current
-    val density = LocalDensity.current
-    val insets = WindowInsetsCompat.toWindowInsetsCompat(view.rootWindowInsets)
-    var isNavigationBarVisible by remember { mutableStateOf(false ) }
-    // State to hold the current bottom padding
-    var bottomPadding by remember { mutableStateOf(0.dp) }
 
-    // Effect to listen to window insets changes
-    DisposableEffect(view) {
-        val listener = ViewCompat.setOnApplyWindowInsetsListener(view) { _, insets ->
-            val isNavBarVisible = insets.isVisible(WindowInsetsCompat.Type.navigationBars())
-            val bottomInset = if (isNavBarVisible) {
-                with(density) { insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom.toDp() }
-            } else {
-                0.dp
-            }
-
-            bottomPadding = bottomInset
-            insets // Return insets to apply them to the view
-        }
-
-        onDispose {
-            ViewCompat.setOnApplyWindowInsetsListener(view, null)
-        }
-    }
 
     Column(
         modifier = modifier
@@ -73,13 +50,14 @@ fun ColorPickerApp(
             .navigationBarsPadding()
     ) {
         ColorAppNavHost(
-            navController = navController
+            navController = navController,
+            window = window
         )
     }
 }
 
 @Composable
-fun CameraPermissionRequest(modifier: Modifier = Modifier) {
+fun CameraPermissionRequest(modifier: Modifier = Modifier, window: Window) {
     val context = LocalContext.current
     var hasCameraPermission by remember { mutableStateOf(
         ContextCompat.checkSelfPermission(
@@ -98,7 +76,10 @@ fun CameraPermissionRequest(modifier: Modifier = Modifier) {
         permissionLauncher.launch(Manifest.permission.CAMERA)
     }
     if (hasCameraPermission) {
-        ColorPickerApp()
+        ColorPickerApp(
+            modifier = modifier,
+            window = window
+        )
     } else {
         Column(
             modifier = Modifier

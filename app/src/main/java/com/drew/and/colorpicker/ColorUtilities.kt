@@ -17,6 +17,11 @@ import java.nio.ByteBuffer
 import kotlin.math.pow
 import kotlin.math.sqrt
 
+var emaRed = Color.Transparent.red.toDouble()
+var emaGreen = Color.Transparent.green.toDouble()
+var emaBlue = Color.Transparent.blue.toDouble()
+var initialized = false
+
 val predefinedColors2 = mapOf(
     // CSS Named Colors
     "AliceBlue" to intArrayOf(240, 248, 255),
