@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Scaffold
@@ -55,6 +56,7 @@ class MainActivity : ComponentActivity() {
 
             ColorPickerTheme {
                 Scaffold(
+                    modifier = Modifier.navigationBarsPadding(),
                     contentWindowInsets = WindowInsets(0.dp)
                 ) { innerPadding ->
                     CameraPermissionRequest(

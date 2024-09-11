@@ -200,7 +200,7 @@ fun CapturedImageScreen(
                     .fillMaxSize()) {
                     drawCircle(
                         color = Color.Black,
-                        radius = 30f,
+                        radius = 25f,
                         center = pickerPosition,
                         style = Stroke(width = 2.dp.toPx())
                     )
@@ -210,8 +210,8 @@ fun CapturedImageScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(0.2f, true)
-                    .padding(16.dp),
+                    .weight(0.3f, true)
+                    .padding(8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
